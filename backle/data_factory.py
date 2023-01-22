@@ -20,31 +20,30 @@ class DataFrameDataFactory(BaseDataFactory):
     """
     Data Factory using a DataFrame
     """
-    def __init__(self, ohlcv_data: pd.DataFrame):
+    def __init__(self, price_data: pd.DataFrame):
         """
         Init DataFrameDF
 
         Args:
-            ohlcv_data (pd.DataFrame): A pandas.DataFrame containing the pricing data required for the backtest
+            price_data (pd.DataFrame): A pandas.DataFrame containing the pricing data required for the backtest
         """
 
-        assert isinstance(ohlcv_data, pd.DataFrame), "ohlcv_data is not of type pandas.DataFrame"
-        assert isinstance(ohlcv_data.index, pd.DatetimeIndex), "ohlcv_data index is not of type pandas.DatetimeIndex"
-        self.ohlcv_data = ohlcv_data
+        assert isinstance(price_data, pd.DataFrame), "price_data is not of type pandas.DataFrame"
+        assert isinstance(price_data.index, pd.DatetimeIndex), "price_data index is not of type pandas.DatetimeIndex"
+        self.price_data = price_data
         
 
 class YahooDataFactory(BaseDataFactory):
     """
     Data Factory for Yahoo Finance data
     """
-    def __init__(self, symbols: Optional[list]=None):
+    def __init__(self, symbols: Optional[list]=None, price_to_use: str = "Adj Close", shift_data_n_periods: int = 0):
 
         """
         Init YahooDF
 
         Args:
-            data_column (str, optional): When to place trades. Defaults to 'Adj Close'.
-            symbols (list, optional): List of symbols matching column names of the allocation matrix. Defaults to None.
+            symbols (list, optional): List of symbols matching column names of the allocation matrix. If None, symbols will be used from the allocation_matrix column names. Defaults to None.
 
         Raises:
             ImportError: To use the YahooDataFactory you must have yfinance installed.
@@ -55,7 +54,13 @@ class YahooDataFactory(BaseDataFactory):
 
         self.symbols = symbols
 
-        self.ohlcv_data = None
+        if price_to_use not in ['Adj Close', 'Close', 'High', 'Low', 'Open']:
+            raise ValueError("price_to_use should be one of the following: ['Adj Close', 'Close', 'High', 'Low', 'Open']")
+
+        self.price_to_use = price_to_use
+        self.shift_data_n_periods = shift_data_n_periods
+
+        self.price_data = None
 
     def pull_price_data(self, symbols: List[str], start: Union[str, datetime.datetime, datetime.date, None]=None, end: Union[str, datetime.datetime, datetime.date, None]=None):
         """
@@ -69,7 +74,7 @@ class YahooDataFactory(BaseDataFactory):
 
         data = yf.download(symbols, start=start, end=end, progress=False)
         
-        self.ohlcv_data = data
+        self.price_data = data[self.price_to_use].shift(self.shift_data_n_periods)
 
 
 if __name__ == "__main__":

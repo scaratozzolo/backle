@@ -9,7 +9,7 @@ class BaseEnvironment:
     START_DATE = datetime.datetime.now(tz=tz.gettz('America/New_York')) - datetime.timedelta(weeks=52)
     END_DATE = None
     COMMISSION_TYPE = "percentage"
-    COMMISSION_AMOUNT = "0"
+    COMMISSION_AMOUNT = 0.0
     STARTING_PORTFOLIO_VALUE = 0
 
 

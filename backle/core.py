@@ -18,9 +18,9 @@ class Backle:
         assert isinstance(data_source, BaseDataFactory), "data_source is not of type backle.data_factory.BaseDataFactory"
         self.data_source = data_source
 
-    def run(self, backtest_env: BaseEnvironment = BaseEnvironment()):
+    def run(self, backtest_env: BaseEnvironment = BaseEnvironment):
 
-        assert isinstance(backtest_env, BaseEnvironment), "backtest_env is not of type backle.environment.BaseEnvironment"
+        assert issubclass(backtest_env, BaseEnvironment), "backtest_env is not of type backle.environment.BaseEnvironment"
 
         if backtest_env.TRADE_AT not in ['open', 'close']:
             raise ValueError("trade_at should be one of the following: ['open', 'close']")
@@ -34,24 +34,29 @@ class Backle:
         else:
             assert self.allocation_matrix.shape[1] == self.data_source.price_data.shape[1], f"allocation_matrix and DataFactory.price_data don't have the same number of columns ({self.allocation_matrix.shape[1]} != {self.data_source.price_data.shape[1]})"
 
-        portfolio_value = backtest_env.STARTING_PORTFOLIO_VALUE
-        self.portfolio_history = pd.DataFrame({'Date':[], 'Portfolio_Value': []})
+        current_portfolio_value = backtest_env.STARTING_PORTFOLIO_VALUE
+        current_portfolio_holdings = {i: [] for i in self.allocation_matrix.columns}
+
+        self.portfolio_value_history = pd.DataFrame({'Date':[], 'Portfolio_Value': []})
+        self.portfolio_holdings_history = pd.DataFrame({'Date':[], **current_portfolio_holdings})
 
         if backtest_env.STARTING_PORTFOLIO_VALUE:
             # portfolio has a starting amount
-            for i, row in tqdm(self.allocation_matrix.iterrows(), total=len(self.allocation_matrix)):
+            for i, row in tqdm(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE].iterrows(), total=len(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE])):
                 price_row = self.data_source.price_data.loc[i]
         
         else:
             # portfolio is $0
-            for i, row in tqdm(self.allocation_matrix.iterrows(), total=len(self.allocation_matrix)):
+            for i, row in tqdm(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE].iterrows(), total=len(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE])):
                 price_row = self.data_source.price_data.loc[i]
 
-                cur_value = row @ price_row # compute dot product
+                current_portfolio_value = row @ price_row # compute dot product
 
-                self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, cur_value]
+                self.portfolio_value_history.loc[len(self.portfolio_value_history.index)] = [i, current_portfolio_value]
+                self.portfolio_holdings_history.loc[len(self.portfolio_holdings_history.index)] = [i] + row.tolist()
 
-        self.portfolio_history.set_index("Date", inplace=True)
+        self.portfolio_value_history.set_index("Date", inplace=True)
+        self.portfolio_holdings_history.set_index("Date", inplace=True)
 
 
 

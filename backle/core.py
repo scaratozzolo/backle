@@ -20,7 +20,7 @@ class Backle:
 
     def run(self, backtest_env: BaseEnvironment = BaseEnvironment):
 
-        assert issubclass(backtest_env, BaseEnvironment), "backtest_env is not of type backle.environment.BaseEnvironment"
+        assert issubclass(backtest_env, BaseEnvironment), "backtest_env is not a subclass of backle.environment.BaseEnvironment"
 
         if backtest_env.TRADE_AT not in ['open', 'close']:
             raise ValueError("trade_at should be one of the following: ['open', 'close']")

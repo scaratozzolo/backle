@@ -37,14 +37,31 @@ class Backle:
         current_portfolio_value = backtest_env.STARTING_PORTFOLIO_VALUE
         current_portfolio_holdings = {i: [] for i in self.allocation_matrix.columns}
 
-        self.portfolio_value_history = pd.DataFrame({'Date':[], 'Portfolio_Value': []})
-        self.portfolio_holdings_history = pd.DataFrame({'Date':[], **current_portfolio_holdings})
+        self.portfolio_history = pd.DataFrame({'Date':[], 'Portfolio_Value': [], **current_portfolio_holdings})
 
+        # TODO allocation matrix can potentially only have rebalance time stamps, but should be able to calc portfolio inbetween rebalancing which means taking the index from the prices
+    
         if backtest_env.STARTING_PORTFOLIO_VALUE:
             # portfolio has a starting amount
+            shares = pd.Series([0]*len(self.allocation_matrix.columns), index=self.allocation_matrix.columns)
+            cash = current_portfolio_value
+            cost_basis = 0
             for i, row in tqdm(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE].iterrows(), total=len(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE])):
                 price_row = self.data_source.price_data.loc[i]
-        
+
+                cur_share_value = shares @ price_row
+
+                current_portfolio_value = cash + cur_share_value
+
+                shares = (current_portfolio_value * row) / price_row
+                if not backtest_env.FRACTIONAL_SHARES:
+                    shares = np.floor(shares)
+
+                cost_basis = shares @ price_row
+                cash = current_portfolio_value - cost_basis
+                
+
+                self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, current_portfolio_value] + shares.tolist()
         else:
             # portfolio is $0
             for i, row in tqdm(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE].iterrows(), total=len(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE])):
@@ -52,11 +69,9 @@ class Backle:
 
                 current_portfolio_value = row @ price_row # compute dot product
 
-                self.portfolio_value_history.loc[len(self.portfolio_value_history.index)] = [i, current_portfolio_value]
-                self.portfolio_holdings_history.loc[len(self.portfolio_holdings_history.index)] = [i] + row.tolist()
+                self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, current_portfolio_value] + row.tolist()
 
-        self.portfolio_value_history.set_index("Date", inplace=True)
-        self.portfolio_holdings_history.set_index("Date", inplace=True)
+        self.portfolio_history.set_index("Date", inplace=True)
 
 
 

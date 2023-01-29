@@ -1,7 +1,10 @@
 import datetime
 from typing import Optional, List, Union
 import pandas as pd
+from pandas.tseries.holiday import USFederalHolidayCalendar
+import pandas_market_calendars as mcal
 import numpy as np
+import pytz
 from loguru import logger
 from tqdm import tqdm
 from backle.data_factory import BaseDataFactory
@@ -25,6 +28,9 @@ class Backle:
         if backtest_env.TRADE_AT not in ['open', 'close']:
             raise ValueError("trade_at should be one of the following: ['open', 'close']")
 
+        if backtest_env.STARTING_PORTFOLIO_VALUE < 1:
+            raise ValueError("STARTING_PORTFOLIO_VALUE must be greater than or equal to 1")
+
         if self.data_source.price_data is None:
             if self.data_source.symbols is None:
                 symbols = self.allocation_matrix.columns
@@ -37,42 +43,54 @@ class Backle:
         current_portfolio_value = backtest_env.STARTING_PORTFOLIO_VALUE
         current_portfolio_holdings = {i: [] for i in self.allocation_matrix.columns}
 
-        self.portfolio_history = pd.DataFrame({'Date':[], 'Portfolio_Value': [], **current_portfolio_holdings})
+        self.portfolio_history = pd.DataFrame({'Date':[], 'Portfolio_Value': [], 'Cash': [], **current_portfolio_holdings})
 
         # TODO allocation matrix can potentially only have rebalance time stamps, but should be able to calc portfolio inbetween rebalancing which means taking the index from the prices
     
-        if backtest_env.STARTING_PORTFOLIO_VALUE:
-            # portfolio has a starting amount
-            shares = pd.Series([0]*len(self.allocation_matrix.columns), index=self.allocation_matrix.columns)
-            cash = current_portfolio_value
-            cost_basis = 0
-            for i, row in tqdm(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE].iterrows(), total=len(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE])):
+        shares = pd.Series([0.0]*len(self.allocation_matrix.columns), index=self.allocation_matrix.columns)
+        cash = current_portfolio_value
+        cost_basis = 0
+
+        _allocation_matrix = self.allocation_matrix.copy().loc[backtest_env.START_DATE:backtest_env.END_DATE]
+        nyse = mcal.get_calendar('NYSE')
+        early = nyse.schedule(start_date=backtest_env.START_DATE, end_date=backtest_env.END_DATE if backtest_env.END_DATE is not None else self.allocation_matrix.index[-1], tz=pytz.timezone('America/New_York'))
+        idx = mcal.date_range(early, frequency='1D').normalize()
+        _allocation_matrix = _allocation_matrix.reindex(idx)
+
+
+        for i, row in tqdm(_allocation_matrix.iterrows(), total=len(_allocation_matrix)):
+
+            try:
                 price_row = self.data_source.price_data.loc[i]
-
-                cur_share_value = shares @ price_row
-
-                current_portfolio_value = cash + cur_share_value
-
-                shares = (current_portfolio_value * row) / price_row
-                if not backtest_env.FRACTIONAL_SHARES:
-                    shares = np.floor(shares)
-
-                cost_basis = shares @ price_row
-                cash = current_portfolio_value - cost_basis
+            except KeyError as excp:
+                if not self._is_business_day(i):
+                    logger.warning(f"Price data missing for {i}, skipping...")
+                else:
+                    logger.error(excp)
+                continue
                 
 
-                self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, current_portfolio_value] + shares.tolist()
-        else:
-            # portfolio is $0
-            for i, row in tqdm(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE].iterrows(), total=len(self.allocation_matrix.loc[backtest_env.START_DATE:backtest_env.END_DATE])):
-                price_row = self.data_source.price_data.loc[i]
+            cur_share_value = shares @ price_row
 
-                current_portfolio_value = row @ price_row # compute dot product
+            current_portfolio_value = cash + cur_share_value
+            # need to include transaction costs here
+            if not row.isnull().all():
+                shares = (current_portfolio_value * row) / price_row
+            if not backtest_env.FRACTIONAL_SHARES:
+                shares = np.floor(shares)
 
-                self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, current_portfolio_value] + row.tolist()
+            cost_basis = shares @ price_row
+            cash = current_portfolio_value - cost_basis
+            
+
+            self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, current_portfolio_value, cash] + shares.tolist()
+
 
         self.portfolio_history.set_index("Date", inplace=True)
-
+    
+    @staticmethod
+    def _is_business_day(date):
+        return bool(len(pd.bdate_range(date, date)))
 
 
 if __name__ == "__main__":

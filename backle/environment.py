@@ -1,16 +1,16 @@
 import datetime
-from dateutil import tz
+import pytz
 
 
 class BaseEnvironment:
 
     TRADE_AT = 'open'
-    FRACTIONAL_SHARES = False
-    START_DATE = datetime.datetime.now(tz=tz.gettz('America/New_York')) - datetime.timedelta(weeks=52)
+    FRACTIONAL_SHARES = True
+    START_DATE = pytz.timezone('America/New_York').localize(datetime.datetime(datetime.datetime.today().year-1, datetime.datetime.today().month, datetime.datetime.today().day))
     END_DATE = None
     COMMISSION_TYPE = "percentage"
     COMMISSION_AMOUNT = 0.0
-    STARTING_PORTFOLIO_VALUE = 0
+    STARTING_PORTFOLIO_VALUE = 1
 
 
 

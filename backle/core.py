@@ -92,6 +92,36 @@ class Backle:
     def _is_business_day(date):
         return bool(len(pd.bdate_range(date, date)))
 
+    def pyfolio_tear_sheet(self):
+
+        try:
+            import pyfolio as pf
+        except ImportError:
+            logger.error("pyfolio not installed: please run 'pip install pyfolio-reloaded'")
+
+        assert hasattr(self, 'portfolio_history'), "You must run the backtest before getting the tear sheet"
+
+        returns = self.portfolio_history['Portfolio_Value'].pct_change()
+
+        pf.create_returns_tear_sheet(returns)
+
+    def quantstats_tear_sheet(self, benchmark="SPY", html_report=False):
+
+        try:
+            import quantstats as qs
+        except ImportError:
+            logger.error("quantstats not installed: please run 'pip install quantstats'")
+
+        assert hasattr(self, 'portfolio_history'), "You must run the backtest before getting the tear sheet"
+
+        returns = self.portfolio_history['Portfolio_Value'].pct_change()
+        returns.index = returns.index.tz_convert(None) # https://github.com/ranaroussi/quantstats/issues/245
+
+        if html_report:
+            qs.reports.html(returns, benchmark=benchmark, output="report.html") # need to specify output file but it doesn't apply
+        else:
+            qs.reports.full(returns, benchmark=benchmark)
+
 
 if __name__ == "__main__":
 

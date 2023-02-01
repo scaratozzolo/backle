@@ -52,10 +52,11 @@ class Backle:
         cost_basis = 0
 
         _allocation_matrix = self.allocation_matrix.copy().loc[backtest_env.START_DATE:backtest_env.END_DATE]
-        nyse = mcal.get_calendar('NYSE')
-        early = nyse.schedule(start_date=backtest_env.START_DATE, end_date=backtest_env.END_DATE if backtest_env.END_DATE is not None else self.allocation_matrix.index[-1], tz=pytz.timezone('America/New_York'))
-        idx = mcal.date_range(early, frequency='1D').normalize()
-        _allocation_matrix = _allocation_matrix.reindex(idx)
+        if backtest_env.REINDEX_ALLOCATION_MATRIX:
+            nyse = mcal.get_calendar('NYSE')
+            early = nyse.schedule(start_date=backtest_env.START_DATE, end_date=backtest_env.END_DATE if backtest_env.END_DATE is not None else self.allocation_matrix.index[-1], tz=pytz.timezone('America/New_York'))
+            idx = mcal.date_range(early, frequency=backtest_env.REINDEX_DATE_FREQ).normalize()
+            _allocation_matrix = _allocation_matrix.reindex(idx)
 
 
         for i, row in tqdm(_allocation_matrix.iterrows(), total=len(_allocation_matrix)):

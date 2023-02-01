@@ -8,7 +8,8 @@ class BaseEnvironment:
     FRACTIONAL_SHARES = True
     START_DATE = pytz.timezone('America/New_York').localize(datetime.datetime(datetime.datetime.today().year-1, datetime.datetime.today().month, datetime.datetime.today().day))
     END_DATE = None
-    DATE_FREQ = "D" # https://pandas.pydata.org/docs/user_guide/timeseries.html#offset-aliases
+    REINDEX_ALLOCATION_MATRIX = True # allows for calculating portfolio values between dates in the allocation matrix, useful if the data is greater than daily
+    REINDEX_DATE_FREQ = "1D" # https://pandas.pydata.org/docs/user_guide/timeseries.html#offset-aliases
     COMMISSION_TYPE = "percentage"
     COMMISSION_AMOUNT = 0.0
     STARTING_PORTFOLIO_VALUE = 1

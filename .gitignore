@@ -1,3 +1,5 @@
 **/__pycache__
 **/*.csv
+**/*.html
 playground.py
+playground.ipynb

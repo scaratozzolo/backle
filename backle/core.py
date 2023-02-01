@@ -93,7 +93,7 @@ class Backle:
     def _is_business_day(date):
         return bool(len(pd.bdate_range(date, date)))
 
-    def pyfolio_tear_sheet(self):
+    def pyfolio_tear_sheet(self, **kwargs):
 
         try:
             import pyfolio as pf
@@ -104,9 +104,9 @@ class Backle:
 
         returns = self.portfolio_history['Portfolio_Value'].pct_change()
 
-        pf.create_returns_tear_sheet(returns)
+        pf.create_returns_tear_sheet(returns, **kwargs)
 
-    def quantstats_tear_sheet(self, benchmark="SPY", html_report=False):
+    def quantstats_tear_sheet(self, html_report=False, **kwargs):
 
         try:
             import quantstats as qs
@@ -119,9 +119,9 @@ class Backle:
         returns.index = returns.index.tz_convert(None) # https://github.com/ranaroussi/quantstats/issues/245
 
         if html_report:
-            qs.reports.html(returns, benchmark=benchmark, output="report.html") # need to specify output file but it doesn't apply
+            qs.reports.html(returns, output="report.html", **kwargs) # need to specify output file but it doesn't apply
         else:
-            qs.reports.full(returns, benchmark=benchmark)
+            qs.reports.full(returns, **kwargs)
 
 
 if __name__ == "__main__":

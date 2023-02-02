@@ -78,9 +78,12 @@ class Backle:
             current_portfolio_value = cash + cur_share_value_ind.sum()
             # need to include transaction costs here
             if not row.isnull().all():
+                shares_old = shares
                 shares = (current_portfolio_value * row) / price_row
                 if not backtest_env.FRACTIONAL_SHARES:
                     shares = np.floor(shares)
+
+                shares_diff = shares - shares_old
 
                 cost_basis_ind = shares * price_row
                 cost_basis = cost_basis_ind.sum()
@@ -88,7 +91,7 @@ class Backle:
 
                 # might need to account for difference in current holdings vs new
                 # https://github.com/stefan-jansen/pyfolio-reloaded/blob/main/src/pyfolio/tears.py#L119
-                for amount, (symbol, price) in zip(shares, price_row.items()):
+                for amount, (symbol, price) in zip(shares_diff, price_row.items()):
                     self.transaction_history.loc[len(self.transaction_history.index)] = [i, amount, price, symbol]
 
             self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, current_portfolio_value, cash] + shares.tolist()

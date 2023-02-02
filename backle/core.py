@@ -115,7 +115,7 @@ class Backle:
 
         returns = self.portfolio_history['portfolio_value'].pct_change()
 
-        pf.create_full_tear_sheet(returns, **kwargs)
+        pf.create_full_tear_sheet(returns, positions=self.position_history, transactions=self.transaction_history, **kwargs)
 
     def quantstats_tear_sheet(self, html_report=False, **kwargs):
 

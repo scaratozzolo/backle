@@ -43,7 +43,9 @@ class Backle:
         current_portfolio_value = backtest_env.STARTING_PORTFOLIO_VALUE
         current_portfolio_holdings = {i: [] for i in self.allocation_matrix.columns}
 
-        self.portfolio_history = pd.DataFrame({'Date':[], 'Portfolio_Value': [], 'Cash': [], **current_portfolio_holdings})
+        self.portfolio_history = pd.DataFrame({'date':[], 'portfolio_value': [], 'cash': [], **current_portfolio_holdings})
+        self.position_history = pd.DataFrame({'date':[], 'cash': [], **current_portfolio_holdings}) # similar to portfolio_history but values are in dollars https://github.com/stefan-jansen/pyfolio-reloaded/blob/main/src/pyfolio/tears.py#L109
+        self.transaction_history = pd.DataFrame({'date':[], 'amount':[], 'price':[], 'symbol':[]})
 
         # TODO allocation matrix can potentially only have rebalance time stamps, but should be able to calc portfolio inbetween rebalancing which means taking the index from the prices
     
@@ -71,23 +73,32 @@ class Backle:
                 continue
                 
 
-            cur_share_value = shares @ price_row
+            cur_share_value_ind = shares * price_row
 
-            current_portfolio_value = cash + cur_share_value
+            current_portfolio_value = cash + cur_share_value_ind.sum()
             # need to include transaction costs here
             if not row.isnull().all():
                 shares = (current_portfolio_value * row) / price_row
-            if not backtest_env.FRACTIONAL_SHARES:
-                shares = np.floor(shares)
+                if not backtest_env.FRACTIONAL_SHARES:
+                    shares = np.floor(shares)
 
-            cost_basis = shares @ price_row
-            cash = current_portfolio_value - cost_basis
-            
+                cost_basis_ind = shares * price_row
+                cost_basis = cost_basis_ind.sum()
+                cash = current_portfolio_value - cost_basis
+
+                # might need to account for difference in current holdings vs new
+                # https://github.com/stefan-jansen/pyfolio-reloaded/blob/main/src/pyfolio/tears.py#L119
+                for amount, (symbol, price) in zip(shares, price_row.items()):
+                    self.transaction_history.loc[len(self.transaction_history.index)] = [i, amount, price, symbol]
 
             self.portfolio_history.loc[len(self.portfolio_history.index)] = [i, current_portfolio_value, cash] + shares.tolist()
+            self.position_history.loc[len(self.position_history.index)] = [i, cash] + cur_share_value_ind.tolist()
 
 
-        self.portfolio_history.set_index("Date", inplace=True)
+
+        self.portfolio_history.set_index("date", inplace=True)
+        self.position_history.set_index("date", inplace=True)
+        self.transaction_history.set_index("date", inplace=True)
     
     @staticmethod
     def _is_business_day(date):
@@ -102,9 +113,9 @@ class Backle:
 
         assert hasattr(self, 'portfolio_history'), "You must run the backtest before getting the tear sheet"
 
-        returns = self.portfolio_history['Portfolio_Value'].pct_change()
+        returns = self.portfolio_history['portfolio_value'].pct_change()
 
-        pf.create_returns_tear_sheet(returns, **kwargs)
+        pf.create_full_tear_sheet(returns, **kwargs)
 
     def quantstats_tear_sheet(self, html_report=False, **kwargs):
 
@@ -115,7 +126,7 @@ class Backle:
 
         assert hasattr(self, 'portfolio_history'), "You must run the backtest before getting the tear sheet"
 
-        returns = self.portfolio_history['Portfolio_Value'].pct_change()
+        returns = self.portfolio_history['portfolio_value'].pct_change()
         returns.index = returns.index.tz_convert(None) # https://github.com/ranaroussi/quantstats/issues/245
 
         if html_report:

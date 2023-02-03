@@ -3,3 +3,5 @@
 **/*.html
 playground.py
 playground.ipynb
+backle.egg-info/*
+dist/*

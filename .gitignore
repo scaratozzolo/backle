@@ -5,3 +5,4 @@ playground.py
 playground.ipynb
 backle.egg-info/*
 dist/*
+*/_version.py

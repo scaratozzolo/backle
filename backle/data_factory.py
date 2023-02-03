@@ -2,12 +2,8 @@ import sys
 from typing import Optional, List, Union
 import datetime
 import pandas as pd
+import yfinance as yf
 
-try:
-    import yfinance as yf
-    YF_INSTALLED = True
-except ImportError as excp:
-    YF_INSTALLED = False
 
 class BaseDataFactory:
     """
@@ -48,9 +44,6 @@ class YahooDataFactory(BaseDataFactory):
         Raises:
             ImportError: To use the YahooDataFactory you must have yfinance installed.
         """
-
-        if not YF_INSTALLED:
-            raise ImportError("To use the YahooDataFactory you must have yfinance installed.")
 
         self.symbols = symbols
 

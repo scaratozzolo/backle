@@ -109,10 +109,7 @@ class Backle:
 
     def pyfolio_tear_sheet(self, **kwargs):
 
-        try:
-            import pyfolio as pf
-        except ImportError:
-            logger.error("pyfolio not installed: please run 'pip install pyfolio-reloaded'")
+        import pyfolio as pf
 
         assert hasattr(self, 'portfolio_history'), "You must run the backtest before getting the tear sheet"
 
@@ -122,10 +119,7 @@ class Backle:
 
     def quantstats_tear_sheet(self, html_report=False, **kwargs):
 
-        try:
-            import quantstats as qs
-        except ImportError:
-            logger.error("quantstats not installed: please run 'pip install quantstats'")
+        import quantstats as qs
 
         assert hasattr(self, 'portfolio_history'), "You must run the backtest before getting the tear sheet"
 

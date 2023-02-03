@@ -52,5 +52,7 @@ include = ["backle"]
 
 [tool.setuptools_scm]
 write_to = "backle/_version.py"
+version_scheme = 'python-simplified-semver'
+local_scheme = "no-local-version"
 
 [project.optional-dependencies]

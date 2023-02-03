@@ -1,0 +1,8 @@
+**/__pycache__
+**/*.csv
+**/*.html
+playground.py
+playground.ipynb
+backle.egg-info/*
+dist/*
+*/_version.py

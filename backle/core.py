@@ -56,7 +56,7 @@ class Backle:
         _allocation_matrix = self.allocation_matrix.copy().loc[backtest_env.START_DATE:backtest_env.END_DATE]
         if backtest_env.REINDEX_ALLOCATION_MATRIX:
             nyse = mcal.get_calendar('NYSE')
-            early = nyse.schedule(start_date=backtest_env.START_DATE, end_date=backtest_env.END_DATE if backtest_env.END_DATE is not None else self.allocation_matrix.index[-1], tz=pytz.timezone('America/New_York'))
+            early = nyse.schedule(start_date=backtest_env.START_DATE, end_date=backtest_env.END_DATE if backtest_env.END_DATE is not None else self.data_source.price_data.index[-1], tz=pytz.timezone('America/New_York'))
             idx = mcal.date_range(early, frequency=backtest_env.REINDEX_DATE_FREQ).normalize()
             _allocation_matrix = _allocation_matrix.reindex(idx)
 
@@ -114,6 +114,7 @@ class Backle:
         assert hasattr(self, 'portfolio_history'), "You must run the backtest before getting the tear sheet"
 
         returns = self.portfolio_history['portfolio_value'].pct_change()
+        returns.index = returns.index.tz_convert(None)
 
         pf.create_full_tear_sheet(returns, positions=self.position_history, transactions=self.transaction_history, **kwargs)
 

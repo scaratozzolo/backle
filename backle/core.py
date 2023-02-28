@@ -1,7 +1,5 @@
-import datetime
 from typing import Optional, List, Union
 import pandas as pd
-from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas_market_calendars as mcal
 import numpy as np
 import pytz
@@ -13,6 +11,12 @@ from backle.environment import BaseEnvironment
 class Backle:
 
     def __init__(self, allocation_matrix: pd.DataFrame, data_source: BaseDataFactory):
+        """
+
+        Args:
+            allocation_matrix (pd.DataFrame): DataFrame where the rows are percent allocations of the asset in the portfolio. Columns are the assets. Index is timestamps.
+            data_source (BaseDataFactory): A DataFactory object that tells the simulation where to pull pricing data from.
+        """
 
         assert isinstance(allocation_matrix, pd.DataFrame), "allocation_matrix is not of type pandas.DataFrame"
         assert isinstance(allocation_matrix.index, pd.DatetimeIndex), "allocation_matrix index is not of type pandas.DatetimeIndex"
@@ -22,7 +26,16 @@ class Backle:
         self.data_source = data_source
 
     def run(self, backtest_env: BaseEnvironment = BaseEnvironment):
+        """
+        The main logic of the simulation
 
+        Args:
+            backtest_env (BaseEnvironment, optional): Environment object used to control the variables of the simulation. Defaults to BaseEnvironment.
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+        """
         # test to make sure backtest_env is a BaseEnvironment Class
         assert issubclass(backtest_env, BaseEnvironment), "backtest_env is not a subclass of backle.environment.BaseEnvironment"
 
@@ -124,6 +137,9 @@ class Backle:
         return bool(len(pd.bdate_range(date, date)))
 
     def pyfolio_tear_sheet(self, **kwargs):
+        """
+        https://pyfolio.ml4trading.io/api-reference.html#pyfolio.tears.create_full_tear_sheet
+        """
 
         import pyfolio as pf
 
@@ -137,6 +153,13 @@ class Backle:
         pf.create_full_tear_sheet(returns, positions=self.position_history, transactions=self.transaction_history, **kwargs)
 
     def quantstats_tear_sheet(self, html_report=False, **kwargs):
+        """
+        https://github.com/ranaroussi/quantstats/blob/main/quantstats/reports.py#L58
+        https://github.com/ranaroussi/quantstats/blob/main/quantstats/reports.py#L266
+
+        Args:
+            html_report (bool, optional): Generate an HTML report instead of printing in console and opening matplotlib plots. Defaults to False.
+        """
 
         import quantstats as qs
 

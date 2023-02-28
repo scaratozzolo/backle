@@ -10,7 +10,7 @@ jobs:
   publish:
     name: PyPI - Publish if this is a tagged commit
     # needs: [verify_docker_build, tests]
-    if: startsWith(github.event.ref, 'refs/tags') && github.repository_owner == 'locustio'
+    if: startsWith(github.event.ref, 'refs/tags') && github.repository_owner == 'scaratozzolo'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -54,10 +54,10 @@ jobs:
       - name: Build
         run: |
           python -m build
-      # - name: Publish prerelease version to PyPI
-      #   if: ${{ env.NOT_MERGE_COMMIT == '' }}
-      #   uses: pypa/gh-action-pypi-publish@master
-      #   with:
-      #     user: __token__
-      #     password: ${{ secrets.PYPI_API_TOKEN }}
-      #     skip_existing: true
+      - name: Publish prerelease version to PyPI
+        if: ${{ env.NOT_MERGE_COMMIT == '' }}
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip_existing: true
